@@ -1,0 +1,949 @@
+openapi: 3.0.4
+info:
+  title: Fitness Workout Tracker
+  version: 0.0.1
+  description: |-
+    This is a simple API for managing user workouts, exercises, and progress tracking.
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:8080/
+    description: Development server
+tags:
+  - name: Users
+    description: Operations related to user management (signup, login, logout, profile).
+  - name: Exercises
+    description: Operations for managing and retrieving exercises information.
+  - name: Workout Plans
+    description: Operations for creating, retrieving, updating, and deleting workout plans.
+  - name: Reports
+    description: Operations for generating workout reports and progress.
+
+paths:
+  /user/signup:
+    post:
+      tags:
+        - Users
+      summary: Register a new user.
+      description: Allows a new user to register for the fitness tracking application.
+      operationId: signupUser
+      requestBody:
+        description: user data to signup
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSignup"
+        required: true
+      responses:
+        '201':
+          description: Successful Signup User 
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                    - $ref: '#/components/schemas/Success' 
+                example:
+                  code: "CREATED"
+                  message: "Successful signup user"
+                  payload: "" 
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '409':
+          description: Email address already exists
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Error"
+                properties:
+                  code: 
+                    type: string
+                    enum:
+                      - "CONFLICT_EMAIL"
+              examples:
+                conflict_email:
+                  value:
+                    code: "CONFLICT_EMAIL"
+                    message: "email alread register"
+
+              
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /user/login:
+    post:
+      tags:
+        - Users 
+      summary: Authenticate user and get an access token.
+      operationId: loginUser
+      requestBody:
+        description: user data to login 
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLogin"
+        required: true
+      responses:
+        '200':
+          description: Successful login. Return an access token. 
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    $ref: "#/components/schemas/UserToken"
+                  code:
+                    default: "FETCH"
+        '401':
+          $ref: "#/components/responses/InvalidInput"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /user/logout:
+    post:
+      tags:
+        - Users 
+      summary: Logs out current logged in user.
+      description: Log user out of the fitness tracking application and expire the access token.
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Successful logout 
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /user/me:
+    get:
+      tags:
+        - Users
+      summary: Get user information.
+      description: Get user information about his name, email and workout plans.
+      operationId: getUserInfo
+      security:
+        - bearerAuth:  []
+      responses:
+        '200':
+          description: Successful get user information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Success'
+                properties:
+                  code:
+                    default: "FETCH"
+                  payload: 
+                    properties:
+                      userStatus:
+                        $ref: "#/components/schemas/UserStatus"
+          
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+ 
+  /exercises:
+    get:
+      tags:
+      - Exercises
+      summary: Get all exercises
+      description: Get all exercises for user to browser
+      operationId: ListExercises
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful list all exercises
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    properties:
+                      exercises:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Exercise' 
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /exercises/{exerciseId}:
+    get:
+      tags:
+        - Exercises
+      summary: get an exercise by a specific id
+      description: get an specific exercise for user to set exercise plan
+      operationId: getExerciseById
+      parameters:
+        - name: exerciseId
+          in: path
+          required: true
+          description: ID of exercise to Return
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful get exercise
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    properties:
+                      exercise:
+                       $ref: '#/components/schemas/Exercise'
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /workouts:
+    get:
+      tags:
+      - Workout Plans
+      summary: List workout plans 
+      description: Retrieve a list of the authenticated user's workout plans. filtered by status and sorted by scheduled date and time.
+      operationId: ListWorkoutPlans
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter workout plans by status
+          required: false
+          schema:
+            $ref: "#/components/schemas/WorkoutPlanStatus"
+        - name: sort
+          in: query
+          description: Sort the results by scheduled data and time
+          required: true
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: asc
+      responses:
+        '200':
+          description: Successful get workout plans
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    properties:
+                      workoutPlans:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WorkoutPlan'
+                
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Workout Plans 
+      summary: create a workout plan
+      description: collect some exercise plans to create an new workout plan for user
+      operationId: createWorkoutPlan
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/CreateWorkoutPlan"
+      responses:
+        '201':
+          description: Successful create workout plan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    properties:
+                      workout:
+                        $ref: '#/components/schemas/WorkoutPlan'
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /workouts/{workoutId}:
+    get:
+      tags:
+        - Workout Plans 
+      summary: get a workout plan by a specific id
+      description: get an specific workout plan for user to operate
+      operationId: getWorkoutPlanbyId
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          description: ID of workout plan to Return
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful get workout plan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    properties:
+                      workoutplan:
+                        $ref: '#/components/schemas/WorkoutPlan'
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Workout Plans 
+      summary: delete a workout plan by a specific id
+      description: delete an specific workout plan for user
+      operationId: deleteWorkoutPlanbyId
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          description: ID of workout plan to delete 
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Successful delete the workout plan
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  
+
+  /workouts/{workoutId}/update-exercise-plans:
+    put:
+      tags:
+        - Workout Plans 
+      summary: update exercise plans
+      description: update exercise plans in a specific workout plan
+
+      operationId: updateExercisePlansInWorkoutPlan
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          description: ID of workout plan to update 
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateExercisePlan'
+        
+      responses:
+        '200':
+          description: Successful update exercise plan 
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    properties:
+                      workoutplan:
+                        $ref: '#/components/schemas/WorkoutPlan'
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /workouts/{workoutId}/complete:
+    put:
+      tags:
+        - Workout Plans 
+      summary: complete a workout plan by a specific id
+      description: complete an specific workout plan with comment and completed status
+      operationId: completeWorkoutPlanbyId
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          description: ID of workout plan to complete 
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/CompleteWorkoutPlan"
+        
+      responses:
+        '204':
+          description: Successful complete workout plan
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /workouts/{workoutId}/schedule:
+    put:
+      tags:
+        - Workout Plans 
+      summary: schedule a workout plan by a specific id
+      description: schedule an specific workout plan
+      operationId: scheduleWorkoutPlanbyId
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          description: ID of workout plan to schedule 
+          schema:
+            type: integer
+            format: int64
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/ScheduleWorkoutPlan"
+        
+      responses:
+        '200':
+          description: Successful schedule workout plan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                properties:
+                  payload:
+                    properties:
+                      workoutplan:
+                        $ref: '#/components/schemas/WorkoutPlan'
+        '400':
+          $ref: "#/components/responses/InvalidInput"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /report/progress:
+    get:
+      tags:
+        - Reports
+      summary: generate report on workout
+      description: generate report on past workouts and progress
+      operationId: reportProgress
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful generate progress report
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Success"
+                
+                properties:
+                  payload:
+                    properties:
+                      progress:
+                        $ref: "#/components/schemas/Progress"
+        '401':
+          $ref: "#/components/responses/Unathorited"
+
+
+components:
+  schemas:
+    UserSignup:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+        - name
+        - email
+        - password
+      example:
+        name: "Bruce"
+        email: "bruce_1878@example.com"
+        password: "string"
+
+    UserLogin:
+      type: object
+      properties:
+        email: 
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+    UserToken:
+      type: object
+      properties:
+        accessToken:
+          type: string
+    UserStatus:
+      type: object
+      properties:
+        id: 
+          type: integer
+          format: int64
+          readOnly: true
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        workoutPlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkoutPlan'
+
+    MuscleGroup:
+      type: string
+      enum:
+        - chest
+        - back
+        - legs
+        - core
+        - arms
+        - shoulders
+        - glutes
+
+    Exercise:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        name:
+          type: string
+        description:
+          type: string
+        muscleGroup:
+          $ref: '#/components/schemas/MuscleGroup'
+
+    WeightUnit:  
+      type: string
+      enum:
+        - kg
+        - lbs
+        - other
+
+    ExercisePlan:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: false
+        workoutPlanId:
+          type: integer
+          format: int64
+          nullable: false
+        exerciseId:
+          type: integer
+          format: int64
+          nullable: false
+        sets:
+          type: integer
+        repetitions:
+          type: integer
+        weights:
+          type: number
+          format: float
+        weightUnit:
+          $ref: '#/components/schemas/WeightUnit'
+
+            
+    CreateExercisePlan:
+      type: object
+      properties:
+        exerciseId:
+          type: integer
+          format: int64
+          nullable: false
+        sets:
+          type: integer
+        repetitions:
+          type: integer
+        weights:
+          type: number
+          format: float
+        weightUnit:
+          $ref: '#/components/schemas/WeightUnit'
+    UpdateExercisePlan:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: false
+        sets:
+          type: integer
+        repetitions:
+          type: integer
+        weights:
+          type: number
+          format: float
+        weightUnit:
+          $ref: '#/components/schemas/WeightUnit'
+        
+      
+    WorkoutPlanStatus:
+      type: string
+      enum:
+        - pending
+        - completed
+        - missed
+
+    WorkoutPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        userId:
+          type: integer
+          format: int64
+          readOnly: true
+        status:
+          $ref: "#/components/schemas/WorkoutPlanStatus"
+
+        scheduledDate:
+          type: string
+          format: date-time 
+          nullable: false
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        exercisePlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExercisePlan'
+    CreateWorkoutPlan:
+      type: object
+      properties:
+        scheduledDate:
+          type: string
+          format: date-time 
+          nullable: false
+        exercisePlans:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateExercisePlan'
+
+    
+        
+    CompleteWorkoutPlan:
+      properties:
+        comment:
+          type: string
+          nullable: true
+    Progress:
+      properties:
+        completedWorkouts:
+          type: integer
+          format: int64
+        totalWorkouts:
+          type: integer
+          format: int64
+    Response:
+      type: object
+      properties:
+        code:
+          type: string
+          description: "A machine-readable error code."
+        message:
+          type: string
+          description: "A human-readable error message"
+      required:
+        - code
+        - message
+    Success:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Response'
+      properties:
+        payload: 
+          type: object
+          description: "data that successful responses carried"
+        code:
+          type: string
+          enum:
+            - "CREATED"
+            - "UPDATE"
+            - "FETCH"
+    Error:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Response'
+      example:
+        code: "INTERNAL_SERVER_ERROR"
+        message: "An unexpected error occurred."
+
+  responses:
+    InvalidInput:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            allOf:
+            - $ref: '#/components/schemas/Error'
+            properties:
+              code:
+                type: string
+                enum:
+                  - "INVALID_EMAIL"
+                  - "INVALID_NAME"
+                  - "INVALID_PASSWORD"
+                  - "INVALID_ID"
+                  - "INVLID_DATE"
+                  - "INVLID_SETTING"
+          examples:
+            invalid_email:
+              summary: "Invalid email format"
+              value:
+                code: "INVALID_EMAIL"
+                message: "the eamil address is invalid"
+            invalid_name:
+              summary: "Invalid name"
+              value:
+                code: "INVALID_NAME"
+                message: "the name length is too long"
+            invalid_password:
+              summary: "Invalid password"
+              value:
+                code: "INVALID_PASSWORD"
+                message: "the password is too short"
+    Unathorited:
+      description: Unauthorized to operate
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              code:
+                type: string
+                enum:
+                  - "UNATHOR"
+            example:
+              code: "UNATHOR"
+              message: "you do not have permission to update workout plan"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+            properties:
+              code:
+                type: string
+                enum:
+                - "NOTFOUND_USER" 
+                - "NOTFOUND_EXERCISE"
+                - "NOTFOUND_EXERCISE_PLAN"
+                - "NOTFOUND_WORKOUT_PLAN"
+            example:
+              code: "NOTFOUND_USER"
+              message: "User ID not found"
+    Forbidden:
+      description: Forbidden to operate 
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+            properties:
+              code:
+                enum:
+                  - "FORBIDDEN_FETCH"
+                  - "FORBIDDEN_DELETE"
+                  - "FORBIDDEN_UPDATE"
+          examples:
+            forbidden_fetch:
+              summary: "forbidden to fetch resource"
+              value:
+                code: "FORBIDDEN_FETCH"
+                message: "unvalid token forbidden to fetch workout plan"
+
+
+  requestBodies:
+    CreateWorkoutPlan:
+      description: workout plan with scheduled date time and exercese plans
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CreateWorkoutPlan"
+    UpdateExercisePlan:
+      description: update exercise plan in a specific workout plan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              exercisePlans:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UpdateExercisePlan"
+
+    CompleteWorkoutPlan:
+      description: to complete workout plan with comment and completed status
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompleteWorkoutPlan"
+    
+    ScheduleWorkoutPlan:
+      description: to schedule workout plan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              scheduledDate:
+                type: string
+                format: date-time
+                nullable: false
+
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    
+
+
