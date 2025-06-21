@@ -1,7 +1,7 @@
 openapi: 3.0.4
 info:
   title: Fitness Workout Tracker
-  version: 0.0.1
+  version: v1 
   description: |-
     This is a simple API for managing user workouts, exercises, and progress tracking.
   license:
@@ -98,7 +98,9 @@ paths:
                   - $ref: "#/components/schemas/Success"
                 properties:
                   payload:
-                    $ref: "#/components/schemas/UserToken"
+                    properties:
+                      accessToken:
+                        $ref: "#/components/schemas/UserToken"
                   code:
                     default: "FETCH"
         '401':
@@ -127,13 +129,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /user/me:
+  /user/status:
     get:
       tags:
         - Users
       summary: Get user information.
       description: Get user information about his name, email and workout plans.
-      operationId: getUserInfo
+      operationId: getUserStatus
       security:
         - bearerAuth:  []
       responses:
@@ -310,7 +312,7 @@ paths:
                 properties:
                   payload:
                     properties:
-                      workout:
+                      workoutPlan:
                         $ref: '#/components/schemas/WorkoutPlan'
         '400':
           $ref: "#/components/responses/InvalidInput"
@@ -351,7 +353,7 @@ paths:
                 properties:
                   payload:
                     properties:
-                      workoutplan:
+                      workoutPlan:
                         $ref: '#/components/schemas/WorkoutPlan'
         '400':
           $ref: "#/components/responses/InvalidInput"
@@ -421,7 +423,7 @@ paths:
       security:
         - bearerAuth: []
       requestBody:
-        $ref: '#/components/requestBodies/UpdateExercisePlan'
+        $ref: '#/components/requestBodies/UpdateExercisePlans'
         
       responses:
         '200':
@@ -434,7 +436,7 @@ paths:
                 properties:
                   payload:
                     properties:
-                      workoutplan:
+                      workoutPlan:
                         $ref: '#/components/schemas/WorkoutPlan'
         '400':
           $ref: "#/components/responses/InvalidInput"
@@ -519,7 +521,7 @@ paths:
                 properties:
                   payload:
                     properties:
-                      workoutplan:
+                      workoutPlan:
                         $ref: '#/components/schemas/WorkoutPlan'
         '400':
           $ref: "#/components/responses/InvalidInput"
@@ -596,11 +598,6 @@ components:
       required:
         - email
         - password
-    UserToken:
-      type: object
-      properties:
-        accessToken:
-          type: string
     UserStatus:
       type: object
       properties:
@@ -617,6 +614,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WorkoutPlan'
+    UserToken:
+      type: string
 
     MuscleGroup:
       type: string
@@ -777,7 +776,26 @@ components:
         totalWorkouts:
           type: integer
           format: int64
-    Response:
+    Success:
+      type: object
+      properties:
+        code:
+          type: string
+          description: "A machine-readable error code."
+          enum:
+            - "CREATED"
+            - "UPDATE"
+            - "FETCH"
+        message:
+          type: string
+          description: "A human-readable error message"
+        payload: 
+          type: object
+          description: "data that successful responses carried"
+      required:
+        - code
+        - message
+    Error:
       type: object
       properties:
         code:
@@ -789,26 +807,8 @@ components:
       required:
         - code
         - message
-    Success:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/Response'
-      properties:
-        payload: 
-          type: object
-          description: "data that successful responses carried"
-        code:
-          type: string
-          enum:
-            - "CREATED"
-            - "UPDATE"
-            - "FETCH"
-    Error:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/Response'
       example:
-        code: "INTERNAL_SERVER_ERROR"
+        code: "INTERNAL_ERROR"
         message: "An unexpected error occurred."
 
   responses:
@@ -830,6 +830,7 @@ components:
                   - "INVALID_ID"
                   - "INVLID_DATE"
                   - "INVLID_SETTING"
+                  - "INVLID_INPUT"
           examples:
             invalid_email:
               summary: "Invalid email format"
@@ -907,8 +908,8 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/CreateWorkoutPlan"
-    UpdateExercisePlan:
-      description: update exercise plan in a specific workout plan
+    UpdateExercisePlans:
+      description: update exercise plans in a specific workout plan
       content:
         application/json:
           schema:
