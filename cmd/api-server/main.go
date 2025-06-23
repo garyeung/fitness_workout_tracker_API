@@ -97,46 +97,47 @@ func Server() {
 	r.Use(chimiddleware.Recoverer)                 // Recover from panics
 	r.Use(chimiddleware.Timeout(60 * time.Second)) // Set a global timeout
 
-	// Public routes group
-	r.Group(func(r chi.Router) {
-		wrapper := api.ServerInterfaceWrapper{
-			Handler: apiHandler,
-			ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-				log.Printf("API error: %v", err)
-				helper.SendErrorResponse(w, err)
-			},
-		}
-		r.Post("/user/signup", wrapper.SignupUser)
-		r.Post("/user/login", wrapper.LoginUser)
+	r.Route("/workout-tracker/v1", func(r chi.Router) {
+		// Public routes group
+		r.Group(func(r chi.Router) {
+			wrapper := api.ServerInterfaceWrapper{
+				Handler: apiHandler,
+				ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+					log.Printf("API error: %v", err)
+					helper.SendErrorResponse(w, err)
+				},
+			}
+			r.Post("/user/signup", wrapper.SignupUser)
+			r.Post("/user/login", wrapper.LoginUser)
+		})
+
+		// Protected routes group with JWT middleware
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.JWTAuthMiddleware(jwtService))
+
+			wrapper := api.ServerInterfaceWrapper{
+				Handler: apiHandler,
+				ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+					log.Printf("API error: %v", err)
+					helper.SendErrorResponse(w, err)
+				},
+			}
+			r.Post("/user/logout", wrapper.LogoutUser)
+			r.Get("/user/status", wrapper.GetUserStatus)
+			r.Get("/workouts", wrapper.ListWorkoutPlans)
+			r.Post("/workouts", wrapper.CreateWorkoutPlan)
+			r.Get("/workouts/{workoutId}", wrapper.GetWorkoutPlanById)
+			r.Delete("/workouts/{workoutId}", wrapper.DeleteWorkoutPlanById)
+			r.Put("/workouts/{workoutId}/complete", wrapper.CompleteWorkoutPlanById)
+			r.Put("/workouts/{workoutId}/schedule", wrapper.ScheduleWorkoutPlanById)
+			r.Put("/workouts/{workoutId}/update-exercise-plans", wrapper.UpdateExercisePlansInWorkoutPlan)
+			r.Get("/exercises", wrapper.ListExercises)
+			r.Get("/exercises/{exerciseId}", wrapper.GetExerciseById)
+			r.Get("/report/progress", wrapper.ReportProgress)
+
+		})
+
 	})
-
-	// Protected routes group with JWT middleware
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.JWTAuthMiddleware(jwtService))
-
-		wrapper := api.ServerInterfaceWrapper{
-			Handler: apiHandler,
-			ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-				log.Printf("API error: %v", err)
-				helper.SendErrorResponse(w, err)
-			},
-		}
-		r.Post("/user/logout", wrapper.LogoutUser)
-		r.Get("/user/status", wrapper.GetUserStatus)
-		r.Get("/workouts", wrapper.ListWorkoutPlans)
-		r.Post("/workouts", wrapper.CreateWorkoutPlan)
-		r.Get("/workouts/{workoutId}", wrapper.GetWorkoutPlanById)
-		r.Delete("/workouts/{workoutId}", wrapper.DeleteWorkoutPlanById)
-		r.Put("/workouts/{workoutId}/complete", wrapper.CompleteWorkoutPlanById)
-		r.Put("/workouts/{workoutId}/schedule", wrapper.ScheduleWorkoutPlanById)
-		r.Put("/workouts/{workoutId}/update-exercise-plans", wrapper.UpdateExercisePlansInWorkoutPlan)
-		r.Get("/exercises", wrapper.ListExercises)
-		r.Get("/exercises/{exerciseId}", wrapper.GetExerciseById)
-		r.Get("/report/progress", wrapper.ReportProgress)
-
-	})
-
-	api.HandlerFromMuxWithBaseURL(apiHandler, r, "/workout-tracker/v1")
 
 	// --- 8. Start the HTTP Server ---
 	port := envVars.ServerPort
