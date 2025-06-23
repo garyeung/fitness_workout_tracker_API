@@ -1,0 +1,62 @@
+[
+ {
+  "name": "Bench Press",
+  "description": "A classic chest exercise performed lying on a bench, pressing a barbell or dumbbells upwards.",
+  "muscleGroup": "chest"
+ },
+ {
+  "name": "Squat",
+  "description": "The king of leg exercises, involving lowering the hips from a standing position and then standing back up.",
+  "muscleGroup": "legs"
+ },
+ {
+  "name": "Deadlift",
+  "description": "A compound exercise where a loaded barbell or bar is lifted off the ground to the level of the hips, then lowered back to the ground.",
+  "muscleGroup": "back"
+ },
+ {
+  "name": "Overhead Press",
+  "description": "An upper body strength exercise in which a weight is pressed straight upwards from racking position until the arms are locked out overhead.",
+  "muscleGroup": "shoulders"
+ },
+ {
+  "name": "Barbell Row",
+  "description": "A weight training exercise that targets a variety of back muscles, performed by pulling a barbell towards the stomach.",
+  "muscleGroup": "back"
+ },
+ {
+  "name": "Pull-up",
+  "description": "An upper-body strength exercise where the body is suspended by the hands and pulled upwards.",
+  "muscleGroup": "back"
+ },
+ {
+  "name": "Push-up",
+  "description": "A common calisthenics exercise beginning from the prone position, raising and lowering the body using the arms.",
+  "muscleGroup": "chest"
+ },
+ {
+  "name": "Bicep Curl",
+  "description": "A weight training exercise that targets the biceps brachii muscle, involving flexing the elbow to bring a weight towards the shoulder.",
+  "muscleGroup": "arms"
+ },
+ {
+  "name": "Tricep Extension",
+  "description": "An exercise that targets the triceps muscles, typically performed by extending the elbow against resistance.",
+  "muscleGroup": "arms"
+ },
+ {
+  "name": "Leg Press",
+  "description": "A weight training exercise in which the individual pushes a weight or resistance away from them using their legs.",
+  "muscleGroup": "legs"
+ },
+ {
+  "name": "Plank",
+  "description": "An isometric core strength exercise that involves maintaining a position similar to a push-up for the maximum possible time.",
+  "muscleGroup": "core"
+ },
+ {
+  "name": "Lunge",
+  "description": "A strength exercise where one leg is positioned forward with knee bent and foot flat on the ground while the other leg is positioned behind.",
+  "muscleGroup": "legs"
+ }
+]
