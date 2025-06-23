@@ -8,7 +8,7 @@ info:
     name: MIT License
     url: https://opensource.org/licenses/MIT
 servers:
-  - url: http://localhost:8080/
+  - url: http://localhost:8080/workout-tracker/v1
     description: Development server
 tags:
   - name: Users
@@ -331,7 +331,7 @@ paths:
         - Workout Plans 
       summary: get a workout plan by a specific id
       description: get an specific workout plan for user to operate
-      operationId: getWorkoutPlanbyId
+      operationId: getWorkoutPlanById
       parameters:
         - name: workoutId
           in: path
@@ -374,7 +374,7 @@ paths:
         - Workout Plans 
       summary: delete a workout plan by a specific id
       description: delete an specific workout plan for user
-      operationId: deleteWorkoutPlanbyId
+      operationId: deleteWorkoutPlanById
       parameters:
         - name: workoutId
           in: path
@@ -458,7 +458,7 @@ paths:
         - Workout Plans 
       summary: complete a workout plan by a specific id
       description: complete an specific workout plan with comment and completed status
-      operationId: completeWorkoutPlanbyId
+      operationId: completeWorkoutPlanById
       parameters:
         - name: workoutId
           in: path
@@ -496,7 +496,7 @@ paths:
         - Workout Plans 
       summary: schedule a workout plan by a specific id
       description: schedule an specific workout plan
-      operationId: scheduleWorkoutPlanbyId
+      operationId: scheduleWorkoutPlanById
       parameters:
         - name: workoutId
           in: path
