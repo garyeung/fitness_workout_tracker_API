@@ -45,7 +45,7 @@ Before you begin, ensure you have the following installed:
 1.  **Clone the repository:**
     ```bash
     git clone [https://github.com/garyeung/fitness_workout_tracker_API.git](https://github.com/garyeung/fitness_workout_tracker_API.git) 
-    cd workout-tracker-api
+    cd fintness_workout_tracker_API 
     ```
 
 2.  **Install Go modules:**
